@@ -42,3 +42,69 @@ jobs:
           name: newman-test-report
           path: newman/report.html
           retention-days: 14
+      name: Restful Booker Newman API Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Newman and htmlextra Reporter
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Create Reports Directory
+        run: mkdir -p newman
+
+      - name: Run API Tests with HTML Extra Reporter
+        run: |
+          newman run Booking_API.json \
+            -e Environment.json \
+            --reporters=cli,htmlextra \
+            --reporter-htmlextra-export newman/BookingAPIReport.html \
+            --reporter-htmlextra-darkTheme \
+            --reporter-htmlextra-title "Restful Booker API Test Report" \
+            --disable-unicode
+
+      - name: Upload Test Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-booking-report
+          path: newman/BookingAPIReport.html
+          retention-days: 14
+
+      - name: Send Execution Report via Email
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Restful Booker API Automation Run Status: ${{ job.status }} (#${{ github.run_number }})"
+          to: ${{ secrets.MAIL_TO }}
+          from: "GitHub Actions CI <${{ secrets.MAIL_USERNAME }}>"
+          html_body: |
+            <h2>Restful Booker API Test Execution Completed</h2>
+            <p><strong>Workflow Status:</strong> ${{ job.status }}</p>
+            <p><strong>Repository:</strong> ${{ github.repository }}</p>
+            <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
+            <p><strong>Commit:</strong> ${{ github.sha }}</p>
+            <p>The detailed Newman HTML test report is attached to this email.</p>
+          attachments: newman/BookingAPIReport.html
