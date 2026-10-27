@@ -12,30 +12,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install Newman & HTML Extra Reporter
+      - name: Install Newman and htmlextra Reporter
         run: npm install -g newman newman-reporter-htmlextra
 
       - name: Create Reports Directory
         run: mkdir -p newman
 
-      - name: Execute Postman Collection
+      - name: Run API Tests with HTML Extra Reporter
         run: |
           newman run Booking_API.json \
             -e Environment.json \
             -r cli,htmlextra \
-            --reporter-htmlextra-export newman/report.html
+            --reporter-htmlextra-export newman/report.html \
+            --reporter-htmlextra-darkTheme \
+            --reporter-htmlextra-title "Restful Booker API Test Report"
 
-      - name: Upload Test Report Artifact
+      - name: Upload Test Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: restful-booker-htmlextra-report
+          name: newman-test-report
           path: newman/report.html
+          retention-days: 14
